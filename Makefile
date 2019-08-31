@@ -1,2 +1,0 @@
-all: test_mksms
-	
