@@ -153,6 +153,18 @@ class Message
         *
         * (documentation goes here)
         */
+        Message(Contact& contact, const string& body)
+        {
+            this->contact = &contact;
+            this->body = body;
+            this->direction = Direction::OUT;
+            this->read = false;
+        }
+
+        /** @brief (one liner)
+        *
+        * (documentation goes here)
+        */
         void setContact(Contact& contact)
         {
           this->contact = &contact;
@@ -230,7 +242,7 @@ class Message
         {
             json msg;
             string str_cont = this->contact->to_json().dump();
-            msg["contact"] = str_cont;
+            msg["contact"] = this->contact->to_json();
             msg["body"] = this->body;
             msg["direction"] = this->direction;
             msg["read"] = this->read;
@@ -448,20 +460,25 @@ class Client
         */
         Response send_message(Message message)
         {
-            httplib::SSLClient client(this->BASE_URL);
-            string endpoint = this->BASE_URL+this->ENDPOINT["send_sms"].dump();
-            httplib::Params params;
+            httplib::SSLClient client(this->BASE_HOST);
+            string endpoint = this->BASE_URL+this->ENDPOINT["send_sms"].get<std::string>();
+
             json msg = message.to_json();
-            params.emplace("body", msg["body"]);
-            params.emplace("contact", msg["contact"]);
-            params.emplace("direction", msg["direction"]);
-            params.emplace("read", msg["read"]);
-            params.emplace("api_key", this->api_key);
-            params.emplace("api_hash", this->api_hash);
-            auto res = client.Post(endpoint.c_str(), params);
+            msg["api_key"] = this->api_key;
+            msg["api_hash"] = this->api_hash;
+
+            std::cout << "endpoint= " << endpoint << std::endl;
+            std::cout << "data= " << msg.dump() << std::endl;
+
+            auto res = client.Post(endpoint.c_str(), msg.dump(), "application/json");
+            if(!res)
+                std::cout << "No valid response";
+            else
+                std::cout << "body= " << res->body;
 
             //Response<string> rep();
             //return rep;
+            // TODO: pensez à supprimer le res avec delete res;
 
         }
 
@@ -503,11 +520,11 @@ class Client
 
 
     private:
-        const char* BASE_URL = "api.mksms.cm/v1";
-        json ENDPOINT = json::parse("{\"send_sms\":\"/sms/send/\",\
-                \"get_sms\":\"/sms/available/\", \
-                \"start_verify\":\"/phone/verify/start/\",\
-                \"confirm_verify\":\"/phone/verify/confirm/\"}");
+        const char* BASE_URL = "/v1";
+        const char* BASE_HOST = "api.mksms.cm";
+        json ENDPOINT = {
+            {"send_sms", "/sms/send/"}
+        };
         string api_hash;
         string api_key;
 };
