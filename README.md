@@ -2,14 +2,14 @@
 
 
 
-## A very lightweight C++ library for communicating with the mksms API
+## A very lightweight C++ library for communicating with the MKsms API
 
 
 copyright (C) 2019, MboateK. All rights reserved. 
 
 
 * [Mksms for c++ GitHub](https://github.com/mksms/mksms-cpp)
-
+* [Official MKsms-cpp documentation](https://docs.mksms.cm/api/cpp/)
 
 
 

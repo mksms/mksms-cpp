@@ -3,6 +3,7 @@
 #define CPPHTTPLIB_OPENSSL_SUPPORT
 
 #include <string>
+#include <algorithm>
 #include <iostream>
 
 #include "deps/httplib.h"
@@ -255,11 +256,14 @@ class Message
 };
 
 
-template <typename Type>
 class Response
 {
     public:
 
+    Response()
+    {
+
+    }
 
         /** @brief (one liner)
           *
@@ -285,11 +289,11 @@ class Response
           *
           * (documentation goes here)
         */
-        Response(bool success, string message, Type data)
+        Response(bool success, string message, string raw_data)
         {
             this->success = success;
             this->message = message;
-            this->data = data;
+            this->data = raw_data;
         }
 
         virtual ~Response()
@@ -319,7 +323,7 @@ class Response
           *
           * (documentation goes here)
         */
-        void setData(Type data)
+        void setData(string data)
         {
           this->data = data;
         }
@@ -346,7 +350,7 @@ class Response
           *
           * (documentation goes here)
         */
-        Type getData()
+        string getData()
         {
           return this->data;
         }
@@ -357,7 +361,7 @@ class Response
     private:
         bool success;
         string message;
-        Type data;
+        string data;
 };
 
 
@@ -381,7 +385,7 @@ class Client
         *
         * (documentation goes here)
         */
-        Response<string> start_verify(string number, string name)
+        Response start_verify(string number, string name)
         {
             httplib::SSLClient client(this->BASE_URL);
             httplib::Params params;
@@ -389,18 +393,23 @@ class Client
             params.emplace("name", name);
             params.emplace("api_key", this->api_key);
             params.emplace("api_hash", this->api_hash);
+
             string endpoint = this->BASE_URL+this->ENDPOINT["start_verify"].dump();
 
+
+            endpoint.erase(std::remove(endpoint.begin(), endpoint.end(), '\"'), endpoint.end());
+            cout<<"La requete a envoyer est: "<<endpoint<<endl;
+
             auto res = client.Post(endpoint.c_str(), params);
-            mksms::Response<string> rep(true, "Khaleb", res->body);
-            return rep;
+            //mksms::Response rep(true, "Khaleb", res->body);
+            //return rep;
         }
 
         /** @brief (one liner)
         *
         * (documentation goes here)
         */
-        Response<string> confirm_verify(string number, string code)
+        Response confirm_verify(string number, string code)
         {
             httplib::SSLClient client(this->BASE_URL);
             httplib::Params params;
@@ -411,7 +420,7 @@ class Client
             string endpoint;
             endpoint = this->BASE_URL+this->ENDPOINT["confirm_verify"].dump();
             auto res = client.Post(endpoint.c_str(), params);
-            return mksms::Response<string>(true, "Khaleb", "Only for testing purpose!");
+            //return mksms::Response(true, "Khaleb", "Only for testing purpose!");
 
         }
 
@@ -419,7 +428,7 @@ class Client
         *
         * (documentation goes here)
         */
-        vector<Message> getMessages(time_t min_date, Direction direction, bool read, time_t timestamp)
+        vector<Message> get_messages(time_t min_date, Direction direction, bool read, time_t timestamp)
         {
             httplib::SSLClient client(this->BASE_URL);
             string endpoint = this->BASE_URL+this->ENDPOINT["get_sms"].dump();
@@ -437,7 +446,7 @@ class Client
         *
         * (documentation goes here)
         */
-        Response<string> send_message(Message message)
+        Response send_message(Message message)
         {
             httplib::SSLClient client(this->BASE_URL);
             string endpoint = this->BASE_URL+this->ENDPOINT["send_sms"].dump();
@@ -494,7 +503,7 @@ class Client
 
 
     private:
-        const char* BASE_URL = "api.mksms.cm";
+        const char* BASE_URL = "api.mksms.cm/v1";
         json ENDPOINT = json::parse("{\"send_sms\":\"/sms/send/\",\
                 \"get_sms\":\"/sms/available/\", \
                 \"start_verify\":\"/phone/verify/start/\",\

@@ -2,7 +2,6 @@
 
 #include <gtest/gtest.h>
 #include "../src/mksms.hpp"
-#include <string>
 
 
 
@@ -71,13 +70,15 @@ TEST(Client, Constructor){
 
 TEST(Client, StartVerify){
     mksms::Client client(api_key, api_hash);
-    mksms::Response<string> rep = client.start_verify(dev_number, dev_name);
+    client.start_verify(dev_number, dev_name);
+
+   // std::cout<<"Apres la requete le contenu de la reponse est"<<rep.getData()<<endl;
 
 }
 
 TEST(Client, ConfirmVerify){
     mksms::Client client(api_key, api_hash);
-    mksms::Response<string> rep = client.confirm_verify(dev_number, dev_name);
+    mksms::Response rep = client.confirm_verify(dev_number, dev_name);
 }
 
 TEST(Client, GetMessages){
