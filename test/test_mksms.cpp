@@ -15,6 +15,7 @@ const string number = "657818876";
 const string dev_number = "693138363";
 const string msg_body = "Hello world!";
 const string msg_body2 = "What's up peoples?";
+int code = 12345;
 
 using namespace std;
 
@@ -57,7 +58,7 @@ TEST(Message, ToJson){
     mksms::Contact contact(name, number);
     mksms::Message message(contact, msg_body, mksms::Direction::OUT, true);
     string str_form = message.to_json().dump();
-    string expected = "{\"body\":\"Hello world!\",\"contact\":\"{\\\"name\\\":\\\"Jon Doe\\\",\\\"number\\\":\\\"657818876\\\"}\",\"direction\":1,\"read\":true}";
+    string expected = "{\"body\":\"Hello world!\",\"contact\":{\"name\":\"Jon Doe\",\"number\":\"657818876\"},\"direction\":1,\"read\":true}";
     EXPECT_EQ(expected, str_form);
 }
 
@@ -70,22 +71,36 @@ TEST(Client, Constructor){
 
 TEST(Client, StartVerify){
     mksms::Client client(api_key, api_hash);
-    client.start_verify(dev_number, dev_name);
+    mksms::Response rep = client.start_verify(dev_number, dev_name);
 
-   // std::cout<<"Apres la requete le contenu de la reponse est"<<rep.getData()<<endl;
+    EXPECT_EQ(200, rep.getStatus());
 
 }
 
 TEST(Client, ConfirmVerify){
     mksms::Client client(api_key, api_hash);
-    mksms::Response rep = client.confirm_verify(dev_number, dev_name);
+    mksms::Response rep = client.confirm_verify(dev_number, code);
+    EXPECT_EQ(200, rep.getStatus());
 }
 
 TEST(Client, GetMessages){
+    std::uint32_t min_time =  1484693089;
+    std::uint32_t timestamp = 1484693089;
     mksms::Client client(api_key, api_hash);
+    mksms::Contact contact(dev_name, dev_number);
+    mksms::Message message(contact, msg_body);
+    mksms::Response rep = client.get_messages(min_time, timestamp);
+
+    EXPECT_EQ(200, rep.getStatus());
    
 }
 
 TEST(Client, SendMessage){
+    mksms::Client client(api_key, api_hash);
+    mksms::Contact contact(dev_name, dev_number);
+    mksms::Message message(contact, msg_body);
+    mksms::Response rep = client.send_message(message);
+
+    EXPECT_EQ(200, rep.getStatus());
 
 }

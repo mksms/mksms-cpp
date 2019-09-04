@@ -411,8 +411,10 @@
 	<iostream>
 	"mksms.hpp"
 
-1567074061 /home/khaleb/Bureau/C++/mksms-cpp/src/mksms.hpp
+1567604042 /home/khaleb/Bureau/C++/mksms-cpp/src/mksms.hpp
 	<string>
+	<algorithm>
+	<iostream>
 	"deps/httplib.h"
 	"deps/json.hpp"
 

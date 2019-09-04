@@ -274,6 +274,7 @@ class Response
 
     Response()
     {
+        this->status = 0;
 
     }
 
@@ -282,20 +283,20 @@ class Response
           * (documentation goes here)
         */
 
-//        Response(string raw_data)
-//        {
-//            json raw_data_json = json::parse(raw_data);
-//            this->success = raw_data_json["success"];
-//            if(raw_data_json["success"]==true)
-//            {
-//                this->message = "";
-//            }
-//            else
-//            {
-//                this->message = raw_data_json["message"];
-//            }
-//            this->data = json(raw_data_json["data"]);
-//        }
+       void from_raw_data(string raw_data)
+       {
+           json raw_data_json = json::parse(raw_data);
+           this->success = bool(raw_data_json["success"].get<int>());
+           if(this->success==true)
+           {
+               this->message = "";
+           }
+           else
+           {
+               this->message = raw_data_json["message"].get<std::string>();
+           }
+            this->data = raw_data;
+       }
 
         /** @brief (one liner)
           *
@@ -367,10 +368,30 @@ class Response
           return this->data;
         }
 
+        /** @brief (one liner)
+          *
+          * (documentation goes here)
+        */
+        int getStatus()
+        {
+            return this->status;
+        }
+
+        /** @brief (one liner)
+          *
+          * (documentation goes here)
+        */
+        void setStatus(int status)
+        {
+            this->status = status;
+        }
+
+
 
     protected:
 
     private:
+        int status;
         bool success;
         string message;
         string data;
@@ -399,40 +420,54 @@ class Client
         */
         Response start_verify(string number, string name)
         {
-            httplib::SSLClient client(this->BASE_URL);
-            httplib::Params params;
-            params.emplace("number", number);
-            params.emplace("name", name);
-            params.emplace("api_key", this->api_key);
-            params.emplace("api_hash", this->api_hash);
+            httplib::SSLClient client(this->BASE_HOST);
+            json data ={
+              {"number", number},
+              {"name", name},
+              {"api_key", this->api_key},
+              {"api_hash", this->api_hash}
+            };
 
-            string endpoint = this->BASE_URL+this->ENDPOINT["start_verify"].dump();
+            string endpoint = this->BASE_URL+this->ENDPOINT["start_verify"].get<std::string>();
 
 
-            endpoint.erase(std::remove(endpoint.begin(), endpoint.end(), '\"'), endpoint.end());
-            cout<<"La requete a envoyer est: "<<endpoint<<endl;
+            mksms::Response rep;
+            auto res = client.Post(endpoint.c_str(), data.dump(), "application/json");
+            if(res && res->status == 200){
+                rep.setStatus(200);
+                rep.from_raw_data(res->body);
+            }
 
-            auto res = client.Post(endpoint.c_str(), params);
-            //mksms::Response rep(true, "Khaleb", res->body);
-            //return rep;
+            return rep;
         }
 
         /** @brief (one liner)
         *
         * (documentation goes here)
         */
-        Response confirm_verify(string number, string code)
+        Response confirm_verify(string number, int code)
         {
-            httplib::SSLClient client(this->BASE_URL);
-            httplib::Params params;
-            params.emplace("number", number);
-            params.emplace("code", code);
-            params.emplace("api_key", this->api_key);
-            params.emplace("api_hash", this->api_hash);
-            string endpoint;
-            endpoint = this->BASE_URL+this->ENDPOINT["confirm_verify"].dump();
-            auto res = client.Post(endpoint.c_str(), params);
-            //return mksms::Response(true, "Khaleb", "Only for testing purpose!");
+            httplib::SSLClient client(this->BASE_HOST);
+            json data = {
+                {"number", number},
+                {"code", code},
+                {"api_key", this->api_key},
+                {"api_hash", this->api_hash}
+            };
+
+            string endpoint = this->BASE_URL+this->ENDPOINT["start_verify"].get<std::string>();
+
+
+            mksms::Response rep;
+            auto res = client.Post(endpoint.c_str(), data.dump(), "application/json");
+
+            if(res && res->status == 200){
+                rep.setStatus(200);
+                rep.from_raw_data(res->body);
+
+            }
+
+            return rep;
 
         }
 
@@ -440,18 +475,37 @@ class Client
         *
         * (documentation goes here)
         */
-        vector<Message> get_messages(time_t min_date, Direction direction, bool read, time_t timestamp)
+        Response get_messages(std::uint32_t min_date , std::uint32_t max_date, Direction direction=mksms::Direction::IN, bool read=false)
         {
-            httplib::SSLClient client(this->BASE_URL);
-            string endpoint = this->BASE_URL+this->ENDPOINT["get_sms"].dump();
-            httplib::Params params;
-            params.emplace("direction", to_string(as_integer(direction)));
-            params.emplace("read", to_string(read));
-            params.emplace("timestamps", to_string(timestamp));
-            params.emplace("api_key", this->api_key);
-            params.emplace("api_hash", this->api_hash);
-            auto res = client.Post(endpoint.c_str(), params);
-            return vector<Message>();
+            httplib::SSLClient client(this->BASE_HOST);
+            string endpoint = this->BASE_URL+this->ENDPOINT["get_sms"].get<std::string>();
+            json data = {
+                {"direction", as_integer(direction)},
+                {"read", read},
+                {"max_date", max_date},
+                {"min_date", min_date},
+                {"api_hash", this->api_hash},
+                {"api_key", this->api_key}
+            };
+
+            string params = "?direction="+std::to_string(as_integer(direction))+
+                            "&read="+std::to_string(read)+
+                            "&max_date="+std::to_string(max_date)+
+                            "&min_date="+std::to_string(min_date)+
+                            "&api_hash="+api_hash+
+                            "&api_key="+api_key;
+
+            Response rep;
+
+            auto res = client.Get((endpoint+params).c_str());
+
+            if(res && res->status == 200){
+                rep.setStatus(200);
+                rep.from_raw_data(res->body);
+
+            }
+
+            return rep;
         }
 
         /** @brief (one liner)
@@ -467,18 +521,16 @@ class Client
             msg["api_key"] = this->api_key;
             msg["api_hash"] = this->api_hash;
 
-            std::cout << "endpoint= " << endpoint << std::endl;
-            std::cout << "data= " << msg.dump() << std::endl;
-
+            Response rep;
             auto res = client.Post(endpoint.c_str(), msg.dump(), "application/json");
-            if(!res)
-                std::cout << "No valid response";
-            else
-                std::cout << "body= " << res->body;
+            if(res && res->status == 200){
+                rep.setStatus(200);
+                rep.from_raw_data(res->body);
+            }
 
-            //Response<string> rep();
-            //return rep;
-            // TODO: pensez à supprimer le res avec delete res;
+            delete &res;
+
+            return rep;
 
         }
 
@@ -523,7 +575,11 @@ class Client
         const char* BASE_URL = "/v1";
         const char* BASE_HOST = "api.mksms.cm";
         json ENDPOINT = {
-            {"send_sms", "/sms/send/"}
+            {"send_sms", "/sms/send/"},
+            {"get_sms", "/sms/available/"},
+            {"start_verify", "/phone/verify/start/"},
+            {"confirm_verify", "/phone/verify/confirm/"},
+
         };
         string api_hash;
         string api_key;
